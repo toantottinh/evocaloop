@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLearningSession } from '../../hooks/useLearningSession.js';
+import { useUserPlan } from '../../hooks/useUserPlan.js';
 import { ttsService } from '../../../tts.service.js';
 import { formatReviewDue } from '../../utils/progress.js';
 import Button from '../../components/ui/Button.jsx';
 import Input from '../../components/ui/Input.jsx';
 import Modal from '../../components/ui/Modal.jsx';
+import UpgradeModal from '../../components/UpgradeModal.jsx';
 import HelpModal, { HelpButton } from '../../components/HelpModal.jsx';
 import Spinner from '../../components/ui/Spinner.jsx';
 import Alert from '../../components/ui/Alert.jsx';
@@ -21,6 +23,7 @@ const RATING_BUTTONS = [
   { key: 'good', label: 'Good', variant: 'primary', shortcut: '3' },
   { key: 'easy', label: 'Easy', variant: 'success', shortcut: '4' },
 ];
+const AD_NOTICE_STORAGE_KEY = 'evocaloop_ad_notice_date';
 
 // Format interval preview (e.g. "10 phút", "1 ngày", "4 ngày")
 function formatIntervalPreview(iso) {
@@ -92,6 +95,39 @@ const LearningSession = () => {
     }
   });
   const [autoEvalModalOpen, setAutoEvalModalOpen] = useState(false);
+  const [adNoticeOpen, setAdNoticeOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const { isAdFree, loading: userPlanLoading } = useUserPlan();
+  const openUpgradeModal = useCallback(() => {
+    setUpgradeModalOpen(true);
+  }, []);
+  const closeAdNotice = useCallback((showUpgrade = false) => {
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      window.localStorage.setItem(AD_NOTICE_STORAGE_KEY, today);
+    } catch (error) {
+      console.error('Unable to save the ad notice date:', error);
+    }
+    setAdNoticeOpen(false);
+    if (showUpgrade) openUpgradeModal();
+  }, [openUpgradeModal]);
+
+  useEffect(() => {
+    if (userPlanLoading) return;
+    if (isAdFree) {
+      setAdNoticeOpen(false);
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      setAdNoticeOpen(window.localStorage.getItem(AD_NOTICE_STORAGE_KEY) !== today);
+    } catch (error) {
+      console.error('Unable to read the ad notice date:', error);
+      setAdNoticeOpen(true);
+    }
+  }, [isAdFree, userPlanLoading]);
+
   const toggleAutoEval = useCallback(() => {
     setAutoEvalEnabled((prev) => {
       const next = !prev;
@@ -346,20 +382,89 @@ const LearningSession = () => {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  const renderSideAds = () =>
+    !isAdFree && (
+      <>
+        <div className="hidden xl:flex fixed left-2 2xl:left-6 top-1/2 -translate-y-1/2 w-[160px] z-10 pointer-events-auto flex-col items-center">
+          <div className="flex h-[600px] w-[160px] items-center justify-center border border-border-color bg-gray-50 text-sm text-gray-500">
+            Banner 160×600
+          </div>
+          <button
+            type="button"
+            onClick={openUpgradeModal}
+            className="mt-2 max-w-[160px] cursor-pointer rounded border border-dashed border-gray-200 bg-gray-50 p-1 text-center text-xs text-gray-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+          >
+            ☕ Mời ad ly nước (chỉ từ 2.5k/tháng) để tắt quảng cáo &amp; bật Focus Mode
+          </button>
+        </div>
+        <div className="hidden xl:flex fixed right-2 2xl:right-6 top-1/2 -translate-y-1/2 w-[160px] z-10 pointer-events-auto flex-col items-center">
+          <div className="flex h-[600px] w-[160px] items-center justify-center border border-border-color bg-gray-50 text-sm text-gray-500">
+            Banner 160×600
+          </div>
+          <button
+            type="button"
+            onClick={openUpgradeModal}
+            className="mt-2 max-w-[160px] cursor-pointer rounded border border-dashed border-gray-200 bg-gray-50 p-1 text-center text-xs text-gray-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+          >
+            ✨ Học không xao nhãng? Nâng cấp Focus Mode ngay
+          </button>
+        </div>
+      </>
+    );
+
+  const renderPlanModals = () => (
+    <>
+      <Modal
+        open={adNoticeOpen}
+        onClose={() => closeAdNotice()}
+        title="Giữ eVocaLoop luôn hoạt động miễn phí 💙"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => closeAdNotice()}>
+              Đã hiểu &amp; Vào học
+            </Button>
+            <Button onClick={() => closeAdNotice(true)}>
+              Xem gói ủng hộ
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-sm leading-relaxed text-text-secondary">
+          <p>
+            Để trang trải chi phí duy trì hệ thống, eVocaLoop có đặt một vài banner quảng cáo nhẹ nhàng ở ngoài lề bài học. Tụi mình cam kết trải nghiệm lật thẻ và ôn tập của bạn vẫn luôn trọn vẹn và không bị gián đoạn.
+          </p>
+          <p>
+            Nếu muốn trải nghiệm học tập không quảng cáo và ủng hộ đội ngũ phát triển ly trà đá, bạn có thể ghé xem gói Focus Mode nhé!
+          </p>
+        </div>
+      </Modal>
+      {upgradeModalOpen && (
+        <UpgradeModal open={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
+      )}
+    </>
+  );
 
   if (loading) {
-    return <Spinner />;
+    return (
+      <>
+        {renderSideAds()}
+        <Spinner />
+        {renderPlanModals()}
+      </>
+    );
   }
 
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
+        {renderSideAds()}
         <Alert type="error" message={error} className="max-w-md" />
         <div className="mt-4 text-center">
           <Button onClick={() => navigate(setId ? `/vocabulary/${setId}` : '/app')}>
             {setId ? 'Về bộ từ' : 'Về trang học'}
           </Button>
         </div>
+        {renderPlanModals()}
       </div>
     );
   }
@@ -367,6 +472,7 @@ const LearningSession = () => {
   if (isSessionComplete) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+        {renderSideAds()}
         <div className="rounded-lg bg-surface-default p-8 shadow-lg">
           <h2 className="text-4xl font-bold text-brand-primary">🎉</h2>
           <h3 className="mt-4 text-2xl font-bold text-text-primary">Hoàn thành phiên học!</h3>
@@ -402,6 +508,7 @@ const LearningSession = () => {
             </Button>
           </div>
         </div>
+        {renderPlanModals()}
       </div>
     );
   }
@@ -413,12 +520,14 @@ const LearningSession = () => {
   if (!currentWord && !isGlobalRecoverableEmpty) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
+        {renderSideAds()}
         <Alert type="info" message="Không có từ nào trong bộ từ này để học." className="max-w-md" />
         <div className="mt-4 text-center">
           <Button onClick={() => navigate(setId ? `/vocabulary/${setId}` : '/app')}>
             {setId ? 'Về bộ từ' : 'Về trang học'}
           </Button>
         </div>
+        {renderPlanModals()}
       </div>
     );
   }
@@ -500,8 +609,11 @@ const LearningSession = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-surface-default text-text-primary">
+      {renderSideAds()}
+
+      <div className="relative z-20 mx-auto flex w-full max-w-3xl flex-1 flex-col px-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border-color bg-surface-sidebar px-4 py-2 shadow-sm">
+      <div className="relative z-20 flex items-center justify-between border-b border-border-color bg-surface-sidebar px-4 py-2 shadow-sm">
         <button
           onClick={handleExit}
           className="inline-flex items-center gap-1 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
@@ -529,7 +641,7 @@ const LearningSession = () => {
       </div>
 
             {/* Progress Bar */}
-      <div className="h-1 w-full bg-border-color">
+      <div className="relative z-20 h-1 w-full bg-border-color">
         <div
           className="h-1 bg-brand-primary transition-all duration-300 ease-out"
           style={{ width: `${progress}%` }}
@@ -537,7 +649,7 @@ const LearningSession = () => {
       </div>
 
       {/* Learn Mode Selector (Limited / Unlimited) */}
-      <div className="flex flex-col gap-2 px-4 py-2">
+      <div className="relative z-20 flex flex-col gap-2 px-4 py-2">
         <div className="flex items-center justify-center gap-2">
           <span className="text-xs font-medium text-text-secondary">Chế độ học:</span>
           <div className="inline-flex items-center gap-1 rounded-lg border border-border-color bg-surface-default p-1 text-sm font-medium">
@@ -579,7 +691,7 @@ const LearningSession = () => {
       </div>
 
       {noWords ? (
-        <div className="py-10 text-center">
+        <div className="relative z-20 py-10 text-center">
           <i className="bx bx-info-circle text-3xl text-text-secondary"></i>
           <p className="mt-3 text-sm text-text-secondary">{noWords}</p>
           {(setId == null || setId === 'all') && learnMode === 'LIMITED' && (
@@ -591,8 +703,8 @@ const LearningSession = () => {
           )}
         </div>
       ) : (
-      <div className="flex flex-1 flex-col items-center justify-center p-3">
-        <div className={`w-full ${questionMode === 'flashcard' ? 'max-w-md' : 'max-w-2xl'} space-y-3 py-2`}>
+      <div className="relative z-20 flex flex-1 flex-col items-center justify-center p-3">
+        <div className="mx-auto w-full max-w-2xl space-y-3 py-2">
                     {/* Status counts (small, non-intrusive) */}
           <div className="space-y-2">
             {/* Current card type indicator */}
@@ -778,6 +890,7 @@ const LearningSession = () => {
         </div>
       </div>
       )}
+      </div>
 
       {/* Auto Evaluation Modal */}
       <Modal
@@ -829,6 +942,7 @@ const LearningSession = () => {
         </p>
       </Modal>
 
+      {renderPlanModals()}
       <HelpModal
         isOpen={helpOpen}
         onClose={() => setHelpOpen(false)}

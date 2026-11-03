@@ -25,7 +25,7 @@ export default function LearnLayout() {
   return (
     <div>
       <div className="border-b border-border-color">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+        <nav className="mx-auto -mb-px flex w-full max-w-3xl space-x-8 px-4" aria-label="Tabs">
           {tabs.map((tab) => (
             <TabLink key={tab.name} {...tab} />
           ))}

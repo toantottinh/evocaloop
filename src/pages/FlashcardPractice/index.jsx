@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useLearning } from '../../hooks/useLearning.js';
 import { ttsService } from '../../../tts.service.js';
 import { RATING } from '../../services/srs.service.js';
-import { masteryFraction, formatReviewDue, masteryLabel } from '../../utils/progress.js';
 import { getVocabularySet } from '../../services/vocabulary.service.js';
 import Button from '../../components/ui/Button.jsx';
 import Spinner from '../../components/ui/Spinner.jsx';
@@ -83,7 +82,6 @@ export default function FlashcardPractice() {
     setCurrentIndex((i) => i + 1);
   }, []);
 
-  // Nhấn Enter khi đã đánh giá xong → chuyển sang thẻ tiếp theo cho tiện.
   useEffect(() => {
     if (!rated) return;
     const onKey = (e) => {
@@ -157,7 +155,7 @@ export default function FlashcardPractice() {
   }
 
   return (
-    <div className="mx-auto max-w-lg py-6">
+    <div className="relative mx-auto max-w-lg py-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-zinc-900">Thẻ ghi nhớ</h1>
@@ -188,7 +186,7 @@ export default function FlashcardPractice() {
 
       {current && (
         <div>
-          {/* Thẻ */}
+          {/* Thẻ flashcard */}
           <button
             onClick={flip}
             className="flex min-h-[260px] w-full flex-col items-center justify-center rounded-2xl border-2 border-indigo-200 bg-white p-8 text-center transition-colors hover:border-indigo-300"
