@@ -6,6 +6,7 @@ export const RATING = {
   HARD: 2,
   GOOD: 3,
   EASY: 4,
+  AUTO_GOOD: 5,
 };
 
 const MIN_EF = 1.3;
@@ -23,6 +24,7 @@ const GRADUATING_INTERVAL_HOURS = {
   [RATING.HARD]: 24,
   [RATING.GOOD]: 72,
   [RATING.EASY]: 168,
+  [RATING.AUTO_GOOD]: 24,
 };
 
 function minutesToIso(minutes) {
@@ -83,7 +85,9 @@ export function computeSrsPayload(prog = {}, rating, ids = {}) {
   let nextState = state;
 
   if (state === 'new' || state === 'learning' || state === 'relearning') {
-    const steps = state === 'relearning' ? RELEARN_STEPS_MIN : LEARNING_STEPS_MIN;
+    const steps = q === RATING.AUTO_GOOD
+      ? LEARNING_STEPS_MIN
+      : state === 'relearning' ? RELEARN_STEPS_MIN : LEARNING_STEPS_MIN;
     // Ensure learning_step is within [0, steps.length]
     learning_step = Math.min(Math.max(0, learning_step), steps.length);
 
@@ -92,9 +96,9 @@ export function computeSrsPayload(prog = {}, rating, ids = {}) {
       nextDueIso = minutesToIso(steps[0]);
       nextState = state === 'relearning' ? 'relearning' : 'learning';
     } else {
-      const advanceBy = q === RATING.EASY ? 2 : q === RATING.GOOD ? 1 : 0;
-      // At the last learning step, every successful rating graduates. This
-      // gives the final typing rating its meaningful 1d / 3d / 7d choice.
+      const advanceBy =
+        q === RATING.EASY ? 2 : q === RATING.GOOD || q === RATING.AUTO_GOOD ? 1 : 0;
+      // At the last learning step, every successful rating graduates.
       const nextStep =
         learning_step === steps.length - 1 && q >= RATING.HARD
           ? steps.length
@@ -106,6 +110,9 @@ export function computeSrsPayload(prog = {}, rating, ids = {}) {
         // that will be persisted below.
         learning_step = nextStep;
         nextDueIso = minutesToIso(steps[learning_step]);
+        if (q === RATING.AUTO_GOOD) {
+          interval_hours = clampInterval(steps[learning_step] / 60);
+        }
         nextState = state === 'relearning' ? 'relearning' : 'learning';
       } else {
         // Graduate to review. The values use the application's existing SRS
@@ -131,7 +138,9 @@ export function computeSrsPayload(prog = {}, rating, ids = {}) {
     } else {
       // success in review
       // compute new interval
-      if (repetitions <= 0) {
+      if (q === RATING.AUTO_GOOD) {
+        interval_hours = Math.round((interval_hours || 24) * 1.2);
+      } else if (repetitions <= 0) {
         interval_hours = 24; // first review after learning
       } else if (repetitions === 1) {
         interval_hours = 24 * 6; // 6 days
@@ -140,7 +149,7 @@ export function computeSrsPayload(prog = {}, rating, ids = {}) {
         interval_hours = Math.max(24, Math.round(interval_hours * ease));
       }
 
-      // apply adjustments for HARD/EASY
+      // apply adjustments for HARD/EASY; auto-evaluation keeps its 1.2x interval.
       if (q === RATING.HARD) {
         // Hard: modestly reduce interval or keep it smaller than GOOD
         ease = clampEF(ease - 0.10);
@@ -158,6 +167,7 @@ export function computeSrsPayload(prog = {}, rating, ids = {}) {
   }
 
   const nowIso = new Date().toISOString();
+  interval_hours = clampInterval(interval_hours);
   const payload = {
     user_id: ids.userId || prog.user_id,
     word_sense_id: ids.wordSenseId || prog.word_sense_id,

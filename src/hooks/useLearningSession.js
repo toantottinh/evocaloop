@@ -20,6 +20,7 @@ const RATING_MAP = {
   hard: RATING.HARD,   // 2
   good: RATING.GOOD,   // 3
   easy: RATING.EASY,   // 4
+  autoGood: RATING.AUTO_GOOD,
 };
 
 const FORCED_TYPING_STORAGE_KEY = 'engfore.forcedTypingWords';
@@ -302,7 +303,7 @@ export function useLearningSession(setId) {
     };
 
     const previews = {};
-    for (const key of ['again', 'hard', 'good', 'easy']) {
+    for (const key of ['again', 'hard', 'good', 'easy', 'autoGood']) {
       const rating = RATING_MAP[key];
       const { progress: computed } = computeSrsPayload(prog, rating, {});
       previews[key] = computed?.review_due_at || null;
@@ -444,12 +445,14 @@ export function useLearningSession(setId) {
 
   // Handle rating selection (Again/Hard/Good/Easy)
   const handleRating = useCallback(
-    (rating, answerWasIncorrect = false, answerWasCorrect = false) => {
+    (rating, answerWasIncorrect = false, answerWasCorrect = false, autoEvaluation = false) => {
       if (!currentWord || isRating || isRated) return;
 
       const incorrectAnswer =
         answerWasIncorrect || (mode === 'typing' && isAnswerRevealed && !isCorrect);
-      const effectiveRating = incorrectAnswer ? 'again' : rating;
+      const effectiveRating = autoEvaluation
+        ? incorrectAnswer ? 'again' : 'autoGood'
+        : rating;
 
       setIsRating(false);
       setRatingError(null);

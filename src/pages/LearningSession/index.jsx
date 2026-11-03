@@ -225,7 +225,7 @@ const LearningSession = () => {
         const userAnswer = userInput.trim().toLowerCase();
         const correctAnswer = (currentWord.word || '').trim().toLowerCase();
         const correct = userAnswer === correctAnswer;
-        handleRating(correct ? 'good' : 'again', !correct, correct);
+        handleRating(correct ? 'good' : 'again', !correct, correct, true);
       }
     });
     speakWordAndExample();
@@ -880,7 +880,7 @@ const LearningSession = () => {
               item={currentWord}
               options={quizOptions}
               onSubmitRating={(rating, _item, wasIncorrect) =>
-                handleRating(rating, wasIncorrect)
+                handleRating(rating, wasIncorrect, !wasIncorrect, autoEvalEnabled)
               }
               ratingSection={renderRatingSection()}
               onAnswered={speakWordAndExample}

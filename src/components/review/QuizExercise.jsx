@@ -57,7 +57,7 @@ function QuizExercise({ item, options, onSubmitRating, ratingSection, onAnswered
         setSelected(idx);
         setSubmitted(true);
         if (autoEvaluationEnabled && typeof onSubmitRating === 'function') {
-          onSubmitRating(isCorrect ? 'good' : 'again');
+          onSubmitRating(isCorrect ? 'good' : 'again', item, !isCorrect);
         }
       });
       if (typeof onAnswered === 'function') onAnswered();
