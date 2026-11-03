@@ -3,6 +3,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useUserPlan } from './hooks/useUserPlan.js';
 import UpgradeModal from './components/UpgradeModal.jsx';
+import FeedbackModal from './components/FeedbackModal.jsx';
 import Logo from './components/common/Logo.jsx';
 import { getDueReviewWordsCount } from './services/learning.service.js'; // Giả sử đường dẫn này đúng
 
@@ -115,6 +116,7 @@ export default function Topbar() {
   const plan = useUserPlan();
   const [reviewCount, setReviewCount] = useState(0);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -190,9 +192,18 @@ export default function Topbar() {
           >
             Nâng cấp
           </button>
+          <button
+            type="button"
+            onClick={() => setFeedbackOpen(true)}
+            className="inline-flex items-center gap-1 rounded-md border border-border-color px-3 py-1.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+          >
+            <i className="bx bx-message-dots text-base" aria-hidden="true"></i>
+            <span>Góp ý</span>
+          </button>
           <UserProfile />
         </div>
         <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+        <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} user={user} />
       </div>
     </header>
   );
