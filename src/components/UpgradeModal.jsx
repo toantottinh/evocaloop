@@ -7,11 +7,11 @@ import usePaymentOrders from '../hooks/usePaymentOrders.js';
 
 const WORD_PACKAGES = [
   { amount: 10000, words: 500, label: '10k' },
-  { amount: 15000, words: 1000, label: '15k' },
+  { amount: 15000, words: 1000, label: '15k', badge: 'Phổ biến nhất' },
   { amount: 22000, words: 2000, label: '22k' },
   { amount: 33000, words: 3000, label: '33k' },
   { amount: 44000, words: 5000, label: '44k' },
-  { amount: 55000, words: 8000, label: '55k' },
+  { amount: 55000, words: 8000, label: '55k', badge: 'Tiết kiệm nhất' },
 ];
 
 export default function UpgradeModal({ open, isOpen, onClose }) {
@@ -137,7 +137,7 @@ export default function UpgradeModal({ open, isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }} role="dialog" aria-modal="true">
       <div className="w-full max-w-3xl rounded-2xl bg-surface-sidebar shadow-2xl">
         <div className="flex items-center justify-between border-b border-border-color px-5 py-4">
-          <h2 className="text-lg font-semibold text-text-primary">Nâng cấp</h2>
+          <h2 className="text-lg font-semibold text-text-primary">Mở rộng dung lượng</h2>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary" aria-label="Đóng">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>
@@ -213,10 +213,41 @@ export default function UpgradeModal({ open, isOpen, onClose }) {
                 {WORD_PACKAGES.map((pkg, idx) => {
                   const isActive = selected && selected.amount === pkg.amount;
                   return (
-                    <button key={idx} type="button" onClick={() => setSelected(pkg)} className={`w-full rounded-xl border p-3 text-left transition-colors ${isActive ? 'border-brand-primary bg-brand-primary/10' : 'border-border-color bg-surface-default hover:bg-surface-hover'}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-text-primary">+{pkg.words.toLocaleString('vi-VN')} từ</span>
-                        <span className="text-sm font-medium text-brand-primary">{pkg.label}</span>
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelected(pkg)}
+                      aria-pressed={Boolean(isActive)}
+                      className={`w-full rounded-xl border p-3 text-left transition-all duration-200 ${
+                        isActive
+                          ? 'border-2 border-brand-primary bg-brand-primary/10 ring-2 ring-brand-primary/20'
+                          : 'border-border-color bg-surface-default hover:border-brand-primary/50 hover:bg-surface-hover'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-text-primary">+{pkg.words.toLocaleString('vi-VN')} từ</span>
+                            {pkg.badge && (
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                pkg.words === 1000
+                                  ? 'bg-sky-100 text-sky-700'
+                                  : 'bg-orange-100 text-orange-700'
+                              }`}>
+                                {pkg.badge}
+                              </span>
+                            )}
+                          </div>
+                          <span className="mt-1 block text-xs text-text-secondary">Sử dụng vĩnh viễn</span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span className="text-sm font-medium text-brand-primary">{pkg.label}</span>
+                          {isActive && (
+                            <svg className="h-5 w-5 text-brand-primary" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                              <path fillRule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.2 7.26a1 1 0 0 1-1.42.003L3.3 9.18a1 1 0 0 1 1.4-1.428l4.08 4.002 6.51-6.458a1 1 0 0 1 1.414-.006Z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
@@ -228,7 +259,7 @@ export default function UpgradeModal({ open, isOpen, onClose }) {
                 disabled={!selected || creating}
                 className="w-full rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
-                {creating ? 'Đang tạo đơn...' : 'Tiến hành thanh toán'}
+                {creating ? 'Đang tạo đơn...' : 'Xác nhận & Tiến hành'}
               </button>
             </div>
           )}
