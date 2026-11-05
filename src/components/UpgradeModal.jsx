@@ -6,27 +6,20 @@ import useUserPlan from '../hooks/useUserPlan.js';
 import usePaymentOrders from '../hooks/usePaymentOrders.js';
 
 const WORD_PACKAGES = [
-  { amount: 10000, words: 500, label: '10k', tag: null },
-  { amount: 15000, words: 1000, label: '15k', tag: null },
-  { amount: 22000, words: 2000, label: '22k', tag: null },
-  { amount: 33000, words: 3000, label: '33k', tag: null },
-  { amount: 44000, words: 5000, label: '44k', tag: 'Tặng 1 tháng tắt Ads' },
-  { amount: 55000, words: 8000, label: '55k', tag: 'Tặng 4 tháng tắt Ads' },
+  { amount: 10000, words: 500, label: '10k' },
+  { amount: 15000, words: 1000, label: '15k' },
+  { amount: 22000, words: 2000, label: '22k' },
+  { amount: 33000, words: 3000, label: '33k' },
+  { amount: 44000, words: 5000, label: '44k' },
+  { amount: 55000, words: 8000, label: '55k' },
 ];
 
-const ADS_PACKAGES = [
-  { amount: 10000, months: 1, label: '10k', desc: '1 tháng' },
-  { amount: 20000, months: 4, label: '20k', desc: '4 tháng' },
-  { amount: 30000, months: 12, label: '30k', desc: '1 năm', tag: 'Tiết kiệm nhất' },
-];
-
-export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
+export default function UpgradeModal({ open, isOpen, onClose }) {
   const visible = open ?? isOpen ?? false;
   const { user, shortUserId, refetchPlan } = useUserPlan();
   const { orders, loading: ordersLoading, createOrder, fetchOrders } = usePaymentOrders();
 
   const [mainTab, setMainTab] = useState('packages');
-  const [pkgTab, setPkgTab] = useState('words');
   const [selected, setSelected] = useState(null);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -37,7 +30,6 @@ export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
   useEffect(() => {
     if (visible) {
       setMainTab('packages');
-      setPkgTab(initialTab === 'ads' ? 'ads' : 'words');
       setSelected(null);
       setCurrentOrder(null);
       setSuccessMsg('');
@@ -55,8 +47,6 @@ export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const packages = pkgTab === 'words' ? WORD_PACKAGES : ADS_PACKAGES;
-
   const handleCopy = async (text, msg) => {
     const ok = await copyTextToClipboard(text);
     setToast(ok ? msg : 'Không thể sao chép, hãy copy thủ công.');
@@ -67,8 +57,8 @@ export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
     setCreating(true);
     try {
       const order = await createOrder({
-        packageType: pkgTab === 'words' ? 'quota' : 'ads',
-        packageDetail: pkgTab === 'words' ? `+${selected.words} từ` : selected.desc,
+        packageType: 'quota',
+        packageDetail: `+${selected.words} từ`,
         amount: selected.amount,
       });
       setCurrentOrder(order);
@@ -102,35 +92,20 @@ export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
   }, [currentOrder?.id]);
 
   const handleOrderCompleted = async (order) => {
-    if (!user?.id) return;
+    if (!user?.id || order.package_type !== 'quota') return;
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('word_quota, ad_free_until')
+        .select('word_quota')
         .eq('id', user.id)
         .maybeSingle();
       let words = selected?.words ?? 0;
-      let months = selected?.months ?? 0;
       if (!selected) {
         const detail = String(order.package_detail || '');
-        const num = parseInt(detail.replace(/[^\d]/g, ''), 10) || 0;
-        if (order.package_type === 'quota') words = num;
-        else if (order.package_type === 'ads') {
-          if (/năm/i.test(detail)) months = num * 12;
-          else months = num;
-        }
+        words = parseInt(detail.replace(/[^\d]/g, ''), 10) || 0;
       }
-      if (order.package_type === 'quota') {
-        const newQuota = (profile?.word_quota ?? 500) + words;
-        await supabase.from('profiles').update({ word_quota: newQuota }).eq('id', user.id);
-      } else if (order.package_type === 'ads') {
-        const baseDate =
-          profile?.ad_free_until && new Date(profile.ad_free_until) > new Date()
-            ? new Date(profile.ad_free_until)
-            : new Date();
-        baseDate.setMonth(baseDate.getMonth() + months);
-        await supabase.from('profiles').update({ ad_free_until: baseDate.toISOString() }).eq('id', user.id);
-      }
+      const newQuota = (profile?.word_quota ?? 500) + words;
+      await supabase.from('profiles').update({ word_quota: newQuota }).eq('id', user.id);
       await refetchPlan?.();
       setSuccessMsg('Nạp thành công!');
     } catch (e) {
@@ -201,14 +176,14 @@ export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
               <button type="button" onClick={() => setCurrentOrder(null)} className="text-sm text-text-secondary underline">Quay lại</button>
             </div>
           ) : mainTab === 'history' ? (
-            <div className="space-y-2">
+            <div className="upgrade-history-scrollbar max-h-[60vh] space-y-2 overflow-y-auto pr-2">
               {ordersLoading ? (
                 <div className="py-8 text-center text-sm text-text-secondary">Đang tải...</div>
               ) : orders.length === 0 ? (
                 <div className="py-8 text-center text-sm text-text-secondary">Chưa có giao dịch nào.</div>
               ) : (
                 <ul className="space-y-2">
-                  {orders.map((order) => (
+                  {orders.filter((order) => order.package_type === 'quota').map((order) => (
                     <li key={order.id} className="rounded-xl border border-border-color bg-surface-default p-3 text-sm">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="font-semibold text-text-primary">{order.order_code}</span>
@@ -234,20 +209,15 @@ export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex gap-2 rounded-lg bg-surface-default p-1">
-                <button type="button" onClick={() => { setPkgTab('words'); setSelected(null); }} className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pkgTab === 'words' ? 'bg-brand-primary text-white' : 'text-text-secondary hover:text-text-primary'}`}>Mua thêm từ vựng</button>
-                <button type="button" onClick={() => { setPkgTab('ads'); setSelected(null); }} className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pkgTab === 'ads' ? 'bg-brand-primary text-white' : 'text-text-secondary hover:text-text-primary'}`}>Tắt quảng cáo & Focus Mode</button>
-              </div>
               <div className="space-y-2">
-                {packages.map((pkg, idx) => {
+                {WORD_PACKAGES.map((pkg, idx) => {
                   const isActive = selected && selected.amount === pkg.amount;
                   return (
                     <button key={idx} type="button" onClick={() => setSelected(pkg)} className={`w-full rounded-xl border p-3 text-left transition-colors ${isActive ? 'border-brand-primary bg-brand-primary/10' : 'border-border-color bg-surface-default hover:bg-surface-hover'}`}>
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-text-primary">{pkgTab === 'words' ? `+${pkg.words.toLocaleString('vi-VN')} từ` : pkg.desc}</span>
+                        <span className="font-semibold text-text-primary">+{pkg.words.toLocaleString('vi-VN')} từ</span>
                         <span className="text-sm font-medium text-brand-primary">{pkg.label}</span>
                       </div>
-                      {pkg.tag && <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{pkg.tag}</span>}
                     </button>
                   );
                 })}
@@ -268,4 +238,3 @@ export default function UpgradeModal({ open, isOpen, onClose, initialTab }) {
     </div>
   );
 }
-

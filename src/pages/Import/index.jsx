@@ -66,7 +66,6 @@ export default function Import() {
   const plan = useUserPlan();
 
   const [text, setText] = useState('');
-  const [upgradeTab, setUpgradeTab] = useState('words');
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [pendingValidRows, setPendingValidRows] = useState([]);
   const [quotaChoiceOpen, setQuotaChoiceOpen] = useState(false);
@@ -289,7 +288,6 @@ export default function Import() {
     if (plan.currentWordsCount + validRows.length > plan.wordQuota) {
       if (remaining <= 0) {
         setError(`Bạn chỉ còn lưu được thêm ${remaining} từ. Cần nâng cấp để lưu thêm.`);
-        setUpgradeTab('words');
         setUpgradeOpen(true);
         return;
       }
@@ -311,7 +309,6 @@ export default function Import() {
 
   const handleUpgradeFromQuota = () => {
     setQuotaChoiceOpen(false);
-    setUpgradeTab('words');
     setUpgradeOpen(true);
   };
 
@@ -658,7 +655,6 @@ export default function Import() {
       <UpgradeModal
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
-        initialTab={upgradeTab}
       />
     </div>
   );

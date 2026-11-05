@@ -110,6 +110,17 @@ body {
   background: transparent;
 }
 
+.upgrade-history-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d8 transparent;
+}
+.upgrade-history-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.upgrade-history-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+}
+
 /* ===== Learning-state status pills ===== */
 .status-pill {
   display: inline-flex;
@@ -129,5 +140,4 @@ body {
 .status-pill--again .dot { background: var(--status-again-text); }
 .status-pill--review .dot { background: var(--status-review-text); }
 .status-pill strong { color: var(--color-text-primary); font-weight: 600; }
-
 

@@ -4,16 +4,15 @@ import { supabase } from '../services/supabase.js';
 const DEFAULT_WORD_QUOTA = 500;
 
 /**
- * Hook quản lý hạn mức từ vựng (word quota) và trạng thái tắt quảng cáo.
+ * Hook quản lý hạn mức từ vựng (word quota).
  *
  * - Lấy user từ Supabase auth.
- * - Query bảng `profiles`: word_quota, ad_free_until.
+ * - Query bảng `profiles`: word_quota.
  * - Đếm số từ hiện có: SELECT count(*) FROM words WHERE user_id = user.id.
  */
 export function useUserPlan() {
   const [user, setUser] = useState(null);
   const [wordQuota, setWordQuota] = useState(DEFAULT_WORD_QUOTA);
-  const [adFreeUntil, setAdFreeUntil] = useState(null);
   const [currentWordsCount, setCurrentWordsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -70,7 +69,6 @@ export function useUserPlan() {
     if (!user) return;
     if (!user?.id) {
       setWordQuota(DEFAULT_WORD_QUOTA);
-      setAdFreeUntil(null);
       setCurrentWordsCount(0);
       setLoading(false);
       return;
@@ -82,20 +80,17 @@ export function useUserPlan() {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('word_quota, ad_free_until')
+          .select('word_quota')
           .eq('id', user.id)
           .maybeSingle();
         if (profile) {
           if (profile.word_quota != null) setWordQuota(Number(profile.word_quota));
           else setWordQuota(DEFAULT_WORD_QUOTA);
-          setAdFreeUntil(profile.ad_free_until ?? null);
         } else {
           setWordQuota(DEFAULT_WORD_QUOTA);
-          setAdFreeUntil(null);
         }
       } catch {
         setWordQuota(DEFAULT_WORD_QUOTA);
-        setAdFreeUntil(null);
       }
 
       // Đếm số từ hiện có (giống Dashboard: tổng set_words count trên các vocabulary_sets của user)
@@ -146,7 +141,6 @@ export function useUserPlan() {
 
 
   const remainingQuota = Math.max(0, (wordQuota ?? DEFAULT_WORD_QUOTA) - (currentWordsCount ?? 0));
-  const isAdFree = !!adFreeUntil && new Date(adFreeUntil) > new Date();
   const shortUserId = user?.id ? String(user.id).slice(0, 6) : '';
 
   return {
@@ -154,7 +148,6 @@ export function useUserPlan() {
     wordQuota: wordQuota ?? DEFAULT_WORD_QUOTA,
     currentWordsCount: currentWordsCount ?? 0,
     remainingQuota,
-    isAdFree,
     shortUserId,
     loading,
     refetchPlan: fetchPlan,
