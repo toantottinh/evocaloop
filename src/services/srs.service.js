@@ -139,7 +139,7 @@ export function computeSrsPayload(prog = {}, rating, ids = {}) {
       // success in review
       // compute new interval
       if (q === RATING.AUTO_GOOD) {
-        interval_hours = Math.round((interval_hours || 24) * 1.2);
+        interval_hours = Math.round((interval_hours || 24) * 1.8);
       } else if (repetitions <= 0) {
         interval_hours = 24; // first review after learning
       } else if (repetitions === 1) {
