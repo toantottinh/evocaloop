@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button.jsx';
 import Spinner from '../../components/ui/Spinner.jsx';
 import Alert from '../../components/ui/Alert.jsx';
 import VocabularyAnswerDetails from '../../components/VocabularyAnswerDetails.jsx';
+import { normalizeTypingAnswer } from '../../utils/normalizeTypingAnswer.js';
 
 export default function TypingPractice() {
   const { setId } = useParams();
@@ -62,9 +63,9 @@ export default function TypingPractice() {
     e.preventDefault();
     if (!current || answered) return;
 
-    const userAnswer = input.trim();
+    const userAnswer = normalizeTypingAnswer(input);
     const isCorrect =
-      userAnswer.toLowerCase() === (current.word || '').toLowerCase();
+      userAnswer === normalizeTypingAnswer(current.word);
 
     setFeedback({
       status: isCorrect ? 'correct' : 'incorrect',
@@ -303,3 +304,4 @@ function shuffle(array) {
   }
   return arr;
 }
+

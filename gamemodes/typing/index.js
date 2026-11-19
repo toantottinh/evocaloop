@@ -16,7 +16,11 @@ function escapeHTML(str) {
 }
 
 function normalize(str) {
-    return String(str || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    return String(str || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[.,!?;:]+$/, '')
+        .replace(/\s+/g, ' ');
 }
 
 function init(wordData, onComplete) {

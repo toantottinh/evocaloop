@@ -14,6 +14,7 @@ import StatusCounts from '../../components/ui/StatusCounts.jsx';
 import VocabularyAnswerDetails from '../../components/VocabularyAnswerDetails.jsx';
 import QuizExercise from '../../components/review/QuizExercise.jsx';
 import { cefrBadgeClass, cefrLabel } from '../../utils/cefr.js';
+import { normalizeTypingAnswer } from '../../utils/normalizeTypingAnswer.js';
 
 const RATING_BUTTONS = [
   { key: 'again', label: 'Again', variant: 'danger', shortcut: '1' },
@@ -186,8 +187,8 @@ const LearningSession = () => {
     flushSync(() => {
       submitAnswer();
       if (autoEvalEnabled && currentWord) {
-        const userAnswer = userInput.trim().toLowerCase();
-        const correctAnswer = (currentWord.word || '').trim().toLowerCase();
+        const userAnswer = normalizeTypingAnswer(userInput);
+        const correctAnswer = normalizeTypingAnswer(currentWord.word);
         const correct = userAnswer === correctAnswer;
         handleRating(correct ? 'good' : 'again', !correct, correct, true);
       }

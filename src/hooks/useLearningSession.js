@@ -13,6 +13,7 @@ import {
 import { DEFAULT_DAILY_NEW_LIMIT, selectNewWordsForToday } from '../services/quota.service.js';
 import { useLearning } from './useLearning.js';
 import { RATING, computeSrsPayload } from '../services/srs.service.js';
+import { normalizeTypingAnswer } from '../utils/normalizeTypingAnswer.js';
 
 // Map UI rating strings to SRS rating numbers
 const RATING_MAP = {
@@ -435,8 +436,8 @@ export function useLearningSession(setId) {
   const submitAnswer = useCallback(() => {
     if (!currentWord || isAnswerRevealed) return;
 
-    const userAnswer = userInput.trim().toLowerCase();
-    const correctAnswer = currentWord.word.trim().toLowerCase();
+    const userAnswer = normalizeTypingAnswer(userInput);
+    const correctAnswer = normalizeTypingAnswer(currentWord.word);
     const correct = userAnswer === correctAnswer;
 
     setIsCorrect(correct);
