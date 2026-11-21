@@ -9,13 +9,13 @@ import {
   getUserDailyNewLimit,
   updateDailyNewLimit,
   DEFAULT_DAILY_NEW_LIMIT,
-  DAILY_NEW_LIMIT_OPTIONS,
+  DAILY_NEW_LIMIT_MAX,
 } from '../../services/learning.service.js';
 
 export default function Profile() {
   const { user, profile } = useAuth();
   const [username, setUsername] = useState(profile?.username || '');
-  const [dailyNewLimit, setDailyNewLimit] = useState(DEFAULT_DAILY_NEW_LIMIT);
+  const [dailyNewLimit, setDailyNewLimit] = useState(String(DEFAULT_DAILY_NEW_LIMIT));
   const [dailyGoal, setDailyGoal] = useState(20); // users.daily_goal (mục tiêu hôm nay)
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -32,6 +32,14 @@ export default function Profile() {
         setUsername((prev) => prev || data.username || '');
         setDailyGoal(Number(data.daily_goal) || 20);
       });
+      getUserDailyNewLimit(user.id).then(({ value, error }) => {
+        if (!mounted) return;
+        if (error) {
+          setError(getAuthErrorMessage(error));
+          return;
+        }
+        setDailyNewLimit(String(value));
+      });
     }
     return () => {
       mounted = false;
@@ -47,8 +55,17 @@ export default function Profile() {
       setError('Vui lòng nhập tên người dùng.');
       return;
     }
+    const newWordLimit = dailyNewLimit.trim() === '' ? NaN : Number(dailyNewLimit);
+    if (
+      !Number.isInteger(newWordLimit) ||
+      newWordLimit < 0 ||
+      newWordLimit > DAILY_NEW_LIMIT_MAX
+    ) {
+      setError(`Số lượng từ mới phải là số nguyên từ 0 đến ${DAILY_NEW_LIMIT_MAX}.`);
+      return;
+    }
     setSaving(true);
-    const { error, value } = await updateDailyNewLimit(user.id, dailyNewLimit);
+    const { error } = await updateDailyNewLimit(user.id, newWordLimit);
     if (!error && Number.isFinite(dailyGoal) && dailyGoal > 0) {
       // Lưu mục tiêu hôm nay (users.daily_goal) — RLS cho phép user tự cập nhật.
       const profRes = await authService.updateProfile(user.id, {
@@ -98,18 +115,17 @@ export default function Profile() {
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Tên hiển thị"
           />
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Từ mới mỗi ngày</label>
-          <select
-            className="w-full rounded-xl py-2.5 px-3 border border-zinc-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+          <Input
+            label="Số lượng từ mới mỗi ngày"
+            name="dailyNewLimit"
+            type="number"
+            min="0"
+            max={DAILY_NEW_LIMIT_MAX}
+            step="1"
             value={dailyNewLimit}
-            onChange={(e) => setDailyNewLimit(Number(e.target.value))}
-          >
-            {DAILY_NEW_LIMIT_OPTIONS.map((limit) => (
-              <option key={limit} value={limit}>
-                {limit}
-              </option>
-            ))}
-          </select>
+            onChange={(e) => setDailyNewLimit(e.target.value)}
+            hint={`Nhập số nguyên từ 0 đến ${DAILY_NEW_LIMIT_MAX}. Nhập 0 nếu chỉ muốn ôn tập.`}
+          />
           <label className="block text-sm font-medium text-zinc-700 mb-1">
             Mục tiêu hôm nay (daily goal)
           </label>

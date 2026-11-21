@@ -3,7 +3,7 @@ import { computeSrsUpdate, RATING } from './srs.service.js';
 import { logDailyLearning } from './dailyGoal.service.js';
 import {
   DEFAULT_DAILY_NEW_LIMIT,
-  DAILY_NEW_LIMIT_OPTIONS,
+  DAILY_NEW_LIMIT_MAX,
   DAILY_NEW_LIMIT_KEY,
   resolveDailyNewLimit,
   getDailyDateKey,
@@ -13,7 +13,7 @@ import {
 // Re-export the pure daily-new-limit helpers so callers import from one place.
 export {
   DEFAULT_DAILY_NEW_LIMIT,
-  DAILY_NEW_LIMIT_OPTIONS,
+  DAILY_NEW_LIMIT_MAX,
   DAILY_NEW_LIMIT_KEY,
   resolveDailyNewLimit,
   getDailyDateKey,

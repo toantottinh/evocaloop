@@ -20,44 +20,36 @@ export { BUSINESS_TIMEZONE, getBusinessDateKey };
 /** Default NEW cards a user may introduce per day when no setting exists. */
 export const DEFAULT_DAILY_NEW_LIMIT = 10;
 
-/** Allowed daily-new-limit choices surfaced in the Settings UI. */
-export const DAILY_NEW_LIMIT_OPTIONS = [5, 10, 20, 30, 50];
+/** Maximum NEW cards a user may introduce per day. */
+export const DAILY_NEW_LIMIT_MAX = 100;
 
 /** Setting key under which the daily limit is persisted in `user_settings`. */
 export const DAILY_NEW_LIMIT_KEY = 'daily_new_limit';
 
 /**
- * Shared clamping logic for every "daily-new-X-limit" setting family.
+ * Resolve a daily-new-limit setting to a supported integer.
  * - Falls back to `fallback` when absent/invalid (NaN, null, …).
- * - Clamps into the supported options range so a misconfigured setting can
- *   never disable learning entirely (limit < 0) or explode the quota.
+ * - Clamps into [0, DAILY_NEW_LIMIT_MAX].
  * @param {*} value
- * @param {number[]} options supported choices (defines min/max)
  * @param {number} fallback default when value is absent/invalid
- * @returns {number} a valid limit within [min, max] of options
+ * @returns {number} a valid limit within [0, DAILY_NEW_LIMIT_MAX]
  */
-function resolveLimitWithinOptions(value, options, fallback) {
-  const min = Math.min(...options);
-  const max = Math.max(...options);
+function resolveLimit(value, fallback) {
+  if (value == null || value === '') return fallback;
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
-  return Math.min(Math.max(Math.round(n), min), max);
+  return Math.min(Math.max(Math.round(n), 0), DAILY_NEW_LIMIT_MAX);
 }
 
 /**
  * Resolve an arbitrary setting value into a valid daily-new-limit integer.
  * - Falls back to DEFAULT_DAILY_NEW_LIMIT when absent/invalid (NaN, null, …).
- * - Clamps into the supported options range so a misconfigured setting can
- *   never disable learning entirely (limit < 0) or explode the quota.
+ * - Clamps into [0, DAILY_NEW_LIMIT_MAX].
  * @param {*} value
- * @returns {number} a valid limit within [min, max] of DAILY_NEW_LIMIT_OPTIONS
+ * @returns {number} a valid limit within [0, DAILY_NEW_LIMIT_MAX]
  */
 export function resolveDailyNewLimit(value) {
-  return resolveLimitWithinOptions(
-    value,
-    DAILY_NEW_LIMIT_OPTIONS,
-    DEFAULT_DAILY_NEW_LIMIT
-  );
+  return resolveLimit(value, DEFAULT_DAILY_NEW_LIMIT);
 }
 
 /**
@@ -88,7 +80,7 @@ export const getDailyDateKey = getBusinessDateKey;
  * @returns {Array} NEW words allowed into the session today (<= remaining quota)
  */
 export function selectNewWordsForToday(newWords, dailyNewLimit, introducedTodayIds = []) {
-  const limit = resolveLimitWithinOptions(dailyNewLimit, DAILY_NEW_LIMIT_OPTIONS, DEFAULT_DAILY_NEW_LIMIT);
+  const limit = resolveDailyNewLimit(dailyNewLimit);
   const introduced = new Set(
     (introducedTodayIds || []).map((id) => (id == null ? '' : String(id)))
   );
